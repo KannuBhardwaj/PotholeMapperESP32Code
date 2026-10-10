@@ -9,10 +9,12 @@
 // Serial Monitor baud rate: 115200
 
 #include <Wire.h>
+#include <LittleFS.h>
+File dataFile;
 
 // ---------- settings you can change ----------
-const unsigned long RUN_SECONDS = 90;      // max length of one recording
-const unsigned long SAMPLE_US   = 10000;   // 10000 us = 100 samples per second
+const unsigned long RUN_SECONDS = 900;    // 300 for 5 min, 600 for 10 min, 900 for 15 min
+const unsigned long SAMPLE_US   = 50000;  // 50000 us = 20 samples per second
 
 // ---------- pins ----------
 const int BUTTON_PIN = 4;    // button between GPIO4 and GND
@@ -84,45 +86,53 @@ bool buttonPressed() {
 }
 // ---------- one recording ----------
 void recordRun() {
+  dataFile = LittleFS.open("/run.csv", FILE_WRITE);   // overwrites the old run
+  if (!dataFile) { Serial.println("# ERROR: could not open file"); return; }
   Serial.println("# RECORDING");
-  Serial.println("time_ms,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,label");
+  dataFile.println("time_ms,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,label");
 
   unsigned long start = millis();
   unsigned long nextSample = micros();
+  unsigned long n = 0;
   float v[6];
+  char line[96];
 
   while (millis() - start < RUN_SECONDS * 1000UL) {
-    // press the button during a run to stop early
-    if (digitalRead(BUTTON_PIN) == LOW) {
-      delay(30);
-      if (digitalRead(BUTTON_PIN) == LOW) {
-        while (digitalRead(BUTTON_PIN) == LOW) {}
-        Serial.println("# STOPPED EARLY");
-        break;
-      }
+    if (buttonPressed()) {
+      Serial.println("# STOPPED EARLY");
+      break;
     }
-
     if ((long)(micros() - nextSample) >= 0) {
       nextSample += SAMPLE_US;
-      digitalWrite(LED_PIN, (millis() / 100) % 2);   // fast blink while recording
+      digitalWrite(LED_PIN, (millis() / 100) % 2);
       if (mpuRead(v)) {
-        Serial.print(millis() - start); Serial.print(',');
-        Serial.print(v[0], 3); Serial.print(',');
-        Serial.print(v[1], 3); Serial.print(',');
-        Serial.print(v[2], 3); Serial.print(',');
-        Serial.print(v[3], 2); Serial.print(',');
-        Serial.print(v[4], 2); Serial.print(',');
-        Serial.print(v[5], 2); Serial.println(',');
+        snprintf(line, sizeof(line), "%lu,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,",
+                 millis() - start, v[0], v[1], v[2], v[3], v[4], v[5]);
+        dataFile.println(line);
+        if (++n % 100 == 0) dataFile.flush();   // saves every 100 rows, so a power cut keeps most of the data
       }
     }
   }
 
+  dataFile.close();
   digitalWrite(LED_PIN, LOW);
-  Serial.println("# DONE");
+  Serial.println("# DONE (saved to flash)");
 }
+
+void dumpFile() {
+  if (!LittleFS.exists("/run.csv")) { Serial.println("# No saved run yet."); return; }
+  File f = LittleFS.open("/run.csv", FILE_READ);
+  Serial.println("# --- SAVED RUN START ---");
+  while (f.available()) Serial.write(f.read());
+  Serial.println("# --- SAVED RUN END ---");
+  f.close();
+}
+
 // ---------- setup / loop ----------
 void setup() {
   Serial.begin(115200);
+  if (!LittleFS.begin(true)) Serial.println("# ERROR: flash storage failed");
+  dumpFile();
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
   Wire.begin(13, 14);   // Wire.begin(SDA, SCL) → SDA = GPIO13, SCL = GPIO14
