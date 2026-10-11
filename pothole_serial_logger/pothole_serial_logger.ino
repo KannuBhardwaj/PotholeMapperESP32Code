@@ -13,17 +13,18 @@
 File dataFile;
 
 // ---------- settings you can change ----------
-const unsigned long RUN_SECONDS = 900;    // 300 for 5 min, 600 for 10 min, 900 for 15 min
-const unsigned long SAMPLE_US   = 50000;  // 50000 us = 20 samples per second
+const unsigned long RUN_SECONDS = 900;  // 300 for 5 min, 600 for 10 min, 900 for 15 min
+const unsigned long SAMPLE_US = 50000;  // 50000 us = 20 samples per second
 
 // ---------- pins ----------
-const int BUTTON_PIN = 4;    // button between GPIO4 and GND
-const int LED_PIN    = 2;    // built-in LED on most ESP32 boards
+const int BUTTON_PIN = 4;  // button between GPIO4 and GND
+const int LED_PIN = 2;     // built-in LED on most ESP32 boards
 // MPU6050: SDA = GPIO21, SCL = GPIO22
 
 const uint8_t MPU_ADDR = 0x68;
 
-enum State { IDLE, READY };
+enum State { IDLE,
+             READY };
 State state = IDLE;
 
 
@@ -33,24 +34,28 @@ bool mpuInit() {
   Wire.setClock(400000);
 
   Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x6B); Wire.write(0x00);      // wake up
+  Wire.write(0x6B);
+  Wire.write(0x00);  // wake up
   if (Wire.endTransmission() != 0) return false;
 
   Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x1A); Wire.write(0x02);      // low-pass filter ~94 Hz
+  Wire.write(0x1A);
+  Wire.write(0x02);  // low-pass filter ~94 Hz
   Wire.endTransmission();
 
   Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x1C); Wire.write(0x10);      // accel range +/-8 g
+  Wire.write(0x1C);
+  Wire.write(0x10);  // accel range +/-8 g
   Wire.endTransmission();
 
   Wire.beginTransmission(MPU_ADDR);
-  Wire.write(0x1B); Wire.write(0x08);      // gyro range +/-500 deg/s
+  Wire.write(0x1B);
+  Wire.write(0x08);  // gyro range +/-500 deg/s
   Wire.endTransmission();
   return true;
 }
 
-bool mpuRead(float *v) {   // v[0..2] = accel in g, v[3..5] = gyro in deg/s
+bool mpuRead(float *v) {  // v[0..2] = accel in g, v[3..5] = gyro in deg/s
   Wire.beginTransmission(MPU_ADDR);
   Wire.write(0x3B);
   if (Wire.endTransmission(false) != 0) return false;
@@ -65,7 +70,7 @@ bool mpuRead(float *v) {   // v[0..2] = accel in g, v[3..5] = gyro in deg/s
   v[0] = raw[0] / 4096.0;
   v[1] = raw[1] / 4096.0;
   v[2] = raw[2] / 4096.0;
-  v[3] = raw[4] / 65.5;      // raw[3] is temperature, skipped
+  v[3] = raw[4] / 65.5;  // raw[3] is temperature, skipped
   v[4] = raw[5] / 65.5;
   v[5] = raw[6] / 65.5;
   return true;
@@ -77,7 +82,7 @@ bool buttonPressed() {
   if (digitalRead(BUTTON_PIN) == LOW) {
     delay(30);
     if (digitalRead(BUTTON_PIN) == LOW) {
-      while (digitalRead(BUTTON_PIN) == LOW) {}   // wait for release
+      while (digitalRead(BUTTON_PIN) == LOW) {}  // wait for release
       delay(30);
       return true;
     }
@@ -86,8 +91,11 @@ bool buttonPressed() {
 }
 // ---------- one recording ----------
 void recordRun() {
-  dataFile = LittleFS.open("/run.csv", FILE_WRITE);   // overwrites the old run
-  if (!dataFile) { Serial.println("# ERROR: could not open file"); return; }
+  dataFile = LittleFS.open("/run.csv", FILE_WRITE);  // overwrites the old run
+  if (!dataFile) {
+    Serial.println("# ERROR: could not open file");
+    return;
+  }
   Serial.println("# RECORDING");
   dataFile.println("time_ms,ax_g,ay_g,az_g,gx_dps,gy_dps,gz_dps,label");
 
@@ -109,7 +117,7 @@ void recordRun() {
         snprintf(line, sizeof(line), "%lu,%.3f,%.3f,%.3f,%.2f,%.2f,%.2f,",
                  millis() - start, v[0], v[1], v[2], v[3], v[4], v[5]);
         dataFile.println(line);
-        if (++n % 100 == 0) dataFile.flush();   // saves every 100 rows, so a power cut keeps most of the data
+        if (++n % 100 == 0) dataFile.flush();  // saves every 100 rows, so a power cut keeps most of the data
       }
     }
   }
@@ -120,7 +128,10 @@ void recordRun() {
 }
 
 void dumpFile() {
-  if (!LittleFS.exists("/run.csv")) { Serial.println("# No saved run yet."); return; }
+  if (!LittleFS.exists("/run.csv")) {
+    Serial.println("# No saved run yet.");
+    return;
+  }
   File f = LittleFS.open("/run.csv", FILE_READ);
   Serial.println("# --- SAVED RUN START ---");
   while (f.available()) Serial.write(f.read());
@@ -132,24 +143,33 @@ void dumpFile() {
 void setup() {
   Serial.begin(115200);
   if (!LittleFS.begin(true)) Serial.println("# ERROR: flash storage failed");
-  dumpFile();
+  Serial.println("# Type d + Enter to dump the saved run");
   pinMode(BUTTON_PIN, INPUT_PULLUP);
   pinMode(LED_PIN, OUTPUT);
-  Wire.begin(13, 14);   // Wire.begin(SDA, SCL) → SDA = GPIO13, SCL = GPIO14
+  Wire.begin(13, 14);  // Wire.begin(SDA, SCL) → SDA = GPIO13, SCL = GPIO14
 
   delay(500);
 
   if (!mpuInit()) {
     Serial.println("# ERROR: MPU6050 not found. Check wiring (SDA=21, SCL=22, 3.3V, GND).");
     while (true) {
-      digitalWrite(LED_PIN, HIGH); delay(80);
-      digitalWrite(LED_PIN, LOW);  delay(80);
+      digitalWrite(LED_PIN, HIGH);
+      delay(80);
+      digitalWrite(LED_PIN, LOW);
+      delay(80);
     }
   }
   Serial.println("# Idle. Press the button to get READY.");
 }
 
 void loop() {
+  if (Serial.available() > 0) {
+    char c = Serial.read();
+    if (c == 'd') {
+      dumpFile();
+      return;
+    }
+  }
   if (buttonPressed()) {
     if (state == IDLE) {
       state = READY;
