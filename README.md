@@ -32,17 +32,16 @@ This repo holds the **ESP32 code only**. The dashboard lives in a separate repo.
 |---|---|
 | VCC | 3V3 |
 | GND | GND |
-| SDA | GPIO `__` |
-| SCL | GPIO `__` |
+| SDA | GPIO `13` |
+| SCL | GPIO `14` |
 
-*(Fill in your pins. Add GPS and SD tables once those arrive.)*
 
 ## Getting Started
 
 1. Install [Arduino IDE](https://www.arduino.cc/en/software) or [PlatformIO](https://platformio.org/) with ESP32 board support.
 2. Select **ESP32S2 Dev Module** as the board.
 3. Install the required libraries:
-   - `Adafruit MPU6050` (or whichever MPU6050 library you use)
+   - `Adafruit MPU6050` 
    - `TinyGPS++` *(for GPS, once added)*
 4. Clone and open the project:
    ```bash
@@ -70,7 +69,6 @@ GPS columns (`lat,lon,speed`) will be appended once the module is integrated.
 └── README.md
 ```
 
-*(Adjust to match your actual layout.)*
 
 ## Roadmap
 
@@ -83,7 +81,8 @@ GPS columns (`lat,lon,speed`) will be appended once the module is integrated.
 
 ## Team
 
-Built by a team of four. Add names and roles here.
+Built by a team of four. 
+
 
 ## License
 
