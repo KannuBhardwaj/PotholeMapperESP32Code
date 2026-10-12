@@ -81,9 +81,4 @@ GPS columns (`lat,lon,speed`) will be appended once the module is integrated.
 
 ## Team
 
-Built by a team of four. 
-
-
-## License
-
-Add a license (MIT is a common default for student projects).
+Built by a team of four (its just me tbh-). 
