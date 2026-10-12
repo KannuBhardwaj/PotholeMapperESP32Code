@@ -12,7 +12,7 @@ This repo holds the **ESP32 code only**. The dashboard lives in a separate repo.
 |---|---|
 | Read MPU6050 over I2C | Working |
 | Log readings to CSV | Working |
-| Onboard flash storage | In progress |
+| Onboard flash storage | Working |
 | GPS (NEO-6M) integration | Waiting on hardware |
 | SD card logging | Waiting on hardware |
 | TinyML classifier (Edge Impulse) | Not started, needs data first |
